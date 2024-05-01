@@ -20,6 +20,10 @@ from .utils import (change_dir, expand_directories, file_read, file_write,
                     has_extension, make_list, run_process, get_file_name, yaml_dump,
                     yaml_load, yaml_dump_pandoc_md, get_pack_path, get_full_file_name)
 
+PDF_ENGINE_FORMATS = {
+    "xelatex": "latex",
+    "wkhtmltopdf": "html"
+}
 
 class PandocStyles:
     """Handles the conversion with styles"""
@@ -194,6 +198,13 @@ class PandocStyles:
         if config.get(CFG_PYTHON_PATH):
             self.python_path = normpath(config[CFG_PYTHON_PATH])
 
+    def _get_pdf_engine(self):
+        return (
+            self.pandoc_metadata.get("style-definition", {})
+            .get(PDF, {})
+            .get("pdf-engine", None)
+        )
+
     def _get_cfg(self, fmt):
         """Get the style configuration for the current format"""
         cfg = self.style_to_cfg(self.style, fmt)
@@ -209,7 +220,9 @@ class PandocStyles:
         if self.target:
             cfg[OUTPUT_FILE] = join(self.target, cfg[OUTPUT_FILE])
         cfg[FMT] = fmt
-        cfg[TO_FMT] = fmt
+        cfg[TO_FMT] = (
+            PDF_ENGINE_FORMATS.get(self._get_pdf_engine(), "pdf") if fmt == PDF else fmt
+        )
         cfg[MD_TEMP_DIR] = self.temp_dir
         cfg[MD_CFG_DIR] = CONFIG_DIR
         cfg[MD_STYLE_PACKS] = self.used_stylepacks
